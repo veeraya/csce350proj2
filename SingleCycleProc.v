@@ -1,9 +1,9 @@
 // Texas A&M University          //
 // cpsc350 Computer Architecture //
 // $Id: SingleCycleProc.v,v 1.1 2002/04/08 23:16:14 miket Exp miket $ //
-
 // instruction opcode
 //R-Type (Opcode 000000)
+`define OPCODE_R_type  6'b000000
 `define OPCODE_ADD     6'b000000
 `define OPCODE_SUB     6'b000000
 `define OPCODE_ADDU    6'b000000
@@ -97,13 +97,6 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 
       Instr = instrMemOut;
    end
-
-
-
-//
-// INSERT YOUR CPU MODULES HERE
-//
-
 
 
 //
