@@ -45,8 +45,8 @@
 
 /*-------------------------- CPU -------------------------------
  * This module implements a single-cycle
- * CPU similar to that described in the text book 
- * (for example, see Figure 5.19). 
+ * CPU similar to that described in the text book
+ * (for example, see Figure 5.19).
  *
  */
 
@@ -55,21 +55,21 @@
 // -----------
 // clock - the system clock (m555 timer).
 //
-// reset - when asserted by the test module, forces the processor to 
+// reset - when asserted by the test module, forces the processor to
 //         perform a "reset" operation.  (note: to reset the processor
-//         the reset input must be held asserted across a 
+//         the reset input must be held asserted across a
 //         negative clock edge).
-//   
+//
 //         During a reset, the processor loads an externally supplied
 //         value into the program counter (see startPC below).
-//   
+//
 // startPC - during a reset, becomes the new contents of the program counter
 //	     (starting address of test program).
-// 
+//
 // Output Port
 // -----------
 // dmemOut - contains the data word read out from data memory. This is used
-//           by the test module to verify the correctness of program 
+//           by the test module to verify the correctness of program
 //           execution.
 //-------------------------------------------------------------------------
 
@@ -77,6 +77,26 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    input 	Reset_L, CLK;
    input [31:0] startPC;
    output [31:0] dmemOut;
+   reg [31:0] PC, Instr;
+   wire [31:0] PCIn, instrMemOut;
+
+   initial begin
+      PC = startPC;
+   end
+
+   assign PCIn = PC;
+   InstrMem instrMemBlk(PCIn, instrMemOut);
+
+   always @(negedge CLK) begin
+      // get PC value
+      if (Reset_L) begin
+         PC = PC + 4;
+      end else begin
+         PC = startPC;
+      end
+
+      Instr = instrMemOut;
+   end
 
 
 
@@ -90,33 +110,33 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 // Debugging threads that you may find helpful (you may have
 // to change the variable names).
 //
-   /*  Monitor changes in the program counter
+    // Monitor changes in the program counter
    always @(PC)
      #10 $display($time," PC=%d Instr: op=%d rs=%d rt=%d rd=%d imm16=%d funct=%d",
 	PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
-   */
+
 
    /*   Monitors memory writes
    always @(MemWrite)
 	begin
-	#1 $display($time," MemWrite=%b clock=%d addr=%d data=%d", 
+	#1 $display($time," MemWrite=%b clock=%d addr=%d data=%d",
 	            MemWrite, clock, dmemaddr, rportb);
 	end
    */
-   
+
 endmodule // CPU
 
 
 module m555 (CLK);
-   parameter StartTime = 0, Ton = 50, Toff = 50, Tcc = Ton+Toff; // 
- 
+   parameter StartTime = 0, Ton = 50, Toff = 50, Tcc = Ton+Toff; //
+
    output CLK;
    reg 	  CLK;
-   
+
    initial begin
       #StartTime CLK = 0;
    end
-   
+
    // The following is correct if clock starts at LOW level at StartTime //
    always begin
       #Toff CLK = ~CLK;
@@ -124,35 +144,35 @@ module m555 (CLK);
    end
 endmodule
 
-   
+
 module testCPU(Reset_L, startPC, testData);
    input [31:0] testData;
    output 	Reset_L;
    output [31:0] startPC;
    reg 		 Reset_L;
    reg [31:0] 	 startPC;
-   
+
    initial begin
       // Your program 1
       Reset_L = 0;  startPC = 0 * 4;
       #101 // insures reset is asserted across negative clock edge
-	  Reset_L = 1; 
+	  Reset_L = 1;
       #10000; // allow enough time for program 1 to run to completion
       Reset_L = 0;
       #1 $display ("Program 1: Result: %d", testData);
-      
+
       // Your program 2
       //startPC = 14 * 4;
-      //#101 Reset_L = 1; 
+      //#101 Reset_L = 1;
       //#10000;
       //Reset_L = 0;
 
       //#1 $display ("Program 2: Result: %d", testData);
-      
+
       // etc.
       // Run other programs here
-      
-      
+
+
       $finish;
    end
 endmodule // testCPU
@@ -161,9 +181,9 @@ module TopProcessor;
    wire reset, CLK, Reset_L;
    wire [31:0] startPC;
    wire [31:0] testData;
-   
+
    m555 system_clock(CLK);
    SingleCycleProc SSProc(CLK, Reset_L, startPC, testData);
-   testCPU tcpu(Reset_L, startPC, testData); 
+   testCPU tcpu(Reset_L, startPC, testData);
 
 endmodule // TopProcessor
