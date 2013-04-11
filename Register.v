@@ -5,10 +5,16 @@ module Register (CLK, readReg1, readReg2, writeReg, writeData, RegWrite, readDat
    output [31:0] readData1, readData2;
    reg [31:0] register[31:0];
 
+   initial begin
+      register[0] = 32'b0;
+   end
+
+   //always @(negedge CLK) begin
    always @(negedge CLK) begin
       if (RegWrite) begin
          register[writeReg] = writeData;
-         //$display($time,"\tregister = %d\n", register[writeReg]);
+         $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
+         $display($time,"\tregister = %d\n", register[writeReg]);
       end
    end
 
@@ -16,7 +22,9 @@ module Register (CLK, readReg1, readReg2, writeReg, writeData, RegWrite, readDat
    assign readData1 = register[readReg1];
    assign readData2 = register[readReg2];
 
-
+   // always @(readData1 or readData2) begin
+   //    $display($time," readData1=reg[%d]=%d readData2=reg[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2]);
+   // end
 endmodule // Imem
 
 /*

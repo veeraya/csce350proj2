@@ -1,10 +1,10 @@
 `define OPCODE_R_type  6'b000000
-`include "SingleCycleProc.v"
-`include "ALU_behav.v"
-module MainControl (opCode, ALUOpWire, ALUSrcBWire, RegDstWire, RegWriteWire);
+// `include "SingleCycleProc.v"
+// `include "ALU_behav.v"
+module MainControl (opCode, ALUSrcBWire, RegDstWire, RegWriteWire);
     input [5:0] opCode;
-    output ALUSrcBWire, RegDstWire, RegWriteWire, ALUOpWire;
-    reg ALUSrcB, RegWrite, ALUOp, RegDst;
+    output ALUSrcBWire, RegDstWire, RegWriteWire;
+    reg ALUSrcB, RegWrite, RegDst;
 
     always @(opCode) begin
         case (opCode)
@@ -13,33 +13,29 @@ module MainControl (opCode, ALUOpWire, ALUSrcBWire, RegDstWire, RegWriteWire);
                             begin
                                 ALUSrcB = 0;
                                 RegWrite = 1;
-                                ALUOp = 1;
                                 RegDst = 0;
                              end
             // addi
             `OPCODE_ADDI : begin
-                            ALUSrcB = 0;
+                            ALUSrcB = 1;
                             RegWrite = 1;
-                            ALUOp = 1;
                             RegDst = 1;
                           end
             // addiu
             `OPCODE_ADDIU : begin
-                             ALUSrcB = 0;
+                             ALUSrcB = 1;
                              RegWrite = 1;
-                             ALUOp = 1;
                              RegDst = 1;
                            end
             default: begin
                         ALUSrcB = 0;
                         RegWrite = 0;
-                        ALUOp = 1;
+                        RegDst = 0;
                      end
         endcase
     end
 
     assign ALUSrcBWire = ALUSrcB;
-    assign ALUOpWire = ALUOp;
     assign RegWriteWire = RegWrite;
     assign RegDstWire = RegDst;
 endmodule

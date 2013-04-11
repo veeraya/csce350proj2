@@ -42,7 +42,11 @@
 // Top Level Architecture Model //
 
 `include "IdealMemory.v"
-
+`include "ALU_behav.v"
+`include "Register.v"
+`include "control.v"
+`include "mux.v"
+`include "signextend.v"
 /*-------------------------- CPU -------------------------------
  * This module implements a single-cycle
  * CPU similar to that described in the text book
@@ -78,36 +82,58 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    input [31:0] startPC;
    output [31:0] dmemOut;
    reg [31:0] PC, Instr;
-   wire [31:0] PCIn, instrMemOut;
+   wire [31:0] PCIn, instruction, ALUOut, busA, busB, B, imm32;
+   wire ALUSrcB, RegDst, RegWrite, ALUOverflow, zero, carryOut;
+   wire [3:0] ALUOp;
+   wire [4:0] Rw, Ra, Rb;
+   wire [15:0] imm16;
 
    initial begin
       PC = startPC;
    end
 
    assign PCIn = PC;
-   InstrMem instrMemBlk(PCIn, instrMemOut);
+   assign Ra = instruction[25:21]; //Rs
+   assign Rb = instruction[20:16]; //Rt
+   assign dmemOut = ALUOut;
+   assign imm16 = instruction[15:0];
+
+   InstrMem instrMemBlk(PCIn, instruction);
+   MainControl controlUnit(instruction[31:26], ALUSrcB, RegDst, RegWrite);
+   ALUControl aluControlUnit(instruction[31:26], instruction[5:0], ALUOp);
+   MUX5_2to1 regDstMux(instruction[15:11], instruction[20:16], RegDst, Rw);
+   Register register(CLK, Ra, Rb, Rw, ALUOut, RegWrite, busA, busB);
+   SIGN_EXTEND extender(imm16, imm32);
+   MUX32_2to1 BSelect(busB, imm32, ALUSrcB, B);
+   ALU_behav alu(busA, B, ALUOp, ALUOut, ALUOverflow, 1'b0, carryOut, zero);
 
    always @(negedge CLK) begin
       // get PC value
-      if (Reset_L) begin
-         PC = PC + 4;
-      end else begin
-         PC = startPC;
+      if (Instr != 0) begin
+         if (Reset_L) begin
+            PC = PC + 4;
+         end else begin
+            PC = startPC;
+         end
+         Instr = instruction;
       end
-
-      Instr = instrMemOut;
    end
 
+   // checked: InstrMem, MainContorl, ALUControl, Register
 
 //
 // Debugging threads that you may find helpful (you may have
 // to change the variable names).
 //
     // Monitor changes in the program counter
-   always @(PC)
-     #10 $display($time," PC=%d Instr: op=%d rs=%d rt=%d rd=%d imm16=%d funct=%d",
-	PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
-
+   always @(PC) begin
+     //#10 $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d  ",
+	//PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
+     //$display($time, "WIRES: busA=%d busB=%d B=%d ALUSrcB=%d imm16=%d imm32=%d ", busA, busB, B, ALUSrcB, imm16, imm32);
+     // $display($time," Control Unit: ALUSrcB=%d  RegDst=%d  RegWrite=%d  ", ALUSrcB, RegDst, RegWrite);
+     // $display($time, " ALU Control Unit: opcode=%d  funct=%d  ALUOp=%d  ", instruction[31:26], instruction[5:0], ALUOp);
+     // $display($time, "Register: Rw=%d writeData=%d RegWrite=%d busA=%d busB=%d", Rw, ALUOut, RegWrite, busA, busB);
+  end
 
    /*   Monitors memory writes
    always @(MemWrite)
@@ -152,7 +178,7 @@ module testCPU(Reset_L, startPC, testData);
 	  Reset_L = 1;
       #10000; // allow enough time for program 1 to run to completion
       Reset_L = 0;
-      #1 $display ("Program 1: Result: %d", testData);
+      #10 $display ("Program 1: Result: %d", testData);
 
       // Your program 2
       //startPC = 14 * 4;
