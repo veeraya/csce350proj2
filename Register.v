@@ -1,21 +1,59 @@
-module Register (CLK, readReg1, readReg2, writeReg, writeData, RegWrite, readData1, readData2);
+module Register (CLK, Reset_L, readReg1, readReg2, writeReg, writeData, RegWrite, readData1, readData2);
    input [4:0] readReg1, readReg2, writeReg;
    input [31:0] writeData;
-   input CLK, RegWrite;
+   input CLK, RegWrite, Reset_L;
    output [31:0] readData1, readData2;
    reg [31:0] register[31:0];
+   reg[31:0] resetFlag, resetCount;
+   reg prevReset_L;
+   integer i;
 
    initial begin
       register[0] = 32'b0;
+      resetFlag = 0;
+      resetCount = 0;
    end
 
-   //always @(negedge CLK) begin
+
+
    always @(negedge CLK) begin
-      if (RegWrite) begin
-         register[writeReg] = writeData;
-         $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
-         $display($time,"\tregister = %d\n", register[writeReg]);
-      end
+      $display($time, "REG: Reset_L=%d resetCount=%d", Reset_L, resetCount);
+      if (Reset_L) begin
+         if (resetFlag) begin
+            // do for loop to reset here
+            // print out current register
+            for (i = 0; i < 32; i=i+1) begin
+               $display($time, "Register[%d] = %d", i, register[i]);
+            end
+            resetCount = 0;
+            resetFlag = 0;
+         end else begin
+
+               if (RegWrite) begin
+                  register[writeReg] = writeData;
+                  $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
+               end
+         end // (resetFlag)
+
+      end else begin // Reset_L low
+         // do write
+         if (RegWrite) begin
+            register[writeReg] = writeData;
+            $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
+         end // (RegWrite)
+
+         resetCount = resetCount + 1;
+
+         // set resetFlat to 1 if low for more than 10 cycles
+         if (resetCount >= 32'b1010) begin
+            resetFlag = 1;
+         end //(resetCount >= 32'b1010)
+      end 
+      // if (RegWrite) begin
+      //    register[writeReg] = writeData;
+      //    $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
+      //    //$display($time,"\tregister = %d\n", register[writeReg]);
+      // end
    end
 
    //register[writeReg] = register[writeReg]

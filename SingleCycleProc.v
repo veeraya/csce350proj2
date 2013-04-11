@@ -106,7 +106,7 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    MainControl controlUnit(instruction[31:26], ALUSrcB, RegDst, RegWrite);
    ALUControl aluControlUnit(instruction[31:26], instruction[5:0], ALUOp);
    MUX5_2to1 regDstMux(instruction[15:11], instruction[20:16], RegDst, Rw);
-   Register register(CLK, Ra, Rb, Rw, ALUOut, RegWrite, busA, busB);
+   Register register(CLK, Reset_L, Ra, Rb, Rw, ALUOut, RegWrite, busA, busB);
    SIGN_EXTEND extender(imm16, imm32);
    MUX32_2to1 BSelect(busB, imm32, ALUSrcB, B);
    ALU_behav alu(busA, B, ALUOp, ALUOut, ALUOverflow, 1'b0, carryOut, zero);
@@ -193,7 +193,7 @@ module testCPU(Reset_L, startPC, testData);
      Reset_L = 1;
       #1500; // allow enough time for program 1 to run to completion
       Reset_L = 0;
-      #1000 $display ("Program 1: Result: %d", testData);
+      #1010 $display ("Program 1: Result: %d", testData);
       Reset_L = 1;
       #1500;
       // Your program 2
