@@ -48,6 +48,7 @@
 `include "mux.v"
 `include "signextend.v"
 `include "MasterReset.v"
+`include "PC.v"
 /*-------------------------- CPU -------------------------------
  * This module implements a single-cycle
  * CPU similar to that described in the text book
@@ -83,7 +84,7 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    input [31:0] startPC;
    output [31:0] dmemOut;
    reg [31:0] PC, Instr;
-   wire [31:0] PCIn, instruction, ALUOut, busA, busB, B, imm32;
+   wire [31:0] PCWire, instruction, ALUOut, busA, busB, B, imm32;
    wire ALUSrcB, RegDst, RegWrite, ALUOverflow, zero, carryOut, masterReset;
    wire [3:0] ALUOp;
    wire [4:0] Rw, Ra, Rb;
@@ -92,20 +93,21 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    reg prevReset_L, initialized;
 
    initial begin
-      PC = startPC;
+      //PC = startPC;
       resetFlag = 1;
       resetCount = 0;
       initialized = 0;
    end
 
-   assign PCIn = PC;
+   //assign PCWire = PC;
    assign Ra = instruction[25:21]; //Rs
    assign Rb = instruction[20:16]; //Rt
    assign dmemOut = ALUOut;
    assign imm16 = instruction[15:0];
 
    MasterReset rst(CLK, Reset_L,masterReset);
-   InstrMem instrMemBlk(PCIn, instruction);
+   ProgramCounter pcMod(CLK, masterReset, startPC, PCWire);
+   InstrMem instrMemBlk(PCWire, instruction);
    MainControl controlUnit(instruction[31:26], ALUSrcB, RegDst, RegWrite);
    ALUControl aluControlUnit(instruction[31:26], instruction[5:0], ALUOp);
    MUX5_2to1 regDstMux(instruction[15:11], instruction[20:16], RegDst, Rw);
@@ -117,18 +119,18 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    always @(negedge CLK) begin
       // get PC value
       //if (Instr != 0) begin
-      $display($time, "PC=%d masterResetReg=%d", PCIn, masterReset);
+      // $display($time, "PC=%d masterResetReg=%d", PCWire, masterReset);
       
-      if (!initialized) begin
-         PC = startPC - 4;
-         initialized = 1;
-      end 
+      // if (!initialized) begin
+      //    PC = startPC - 4;
+      //    initialized = 1;
+      // end 
 
-      if (!masterReset) begin
-         PC = startPC;
-      end else begin
-         PC = PC + 4;
-      end
+      // if (!masterReset) begin
+      //    PC = startPC;
+      // end else begin
+      //    PC = PC + 4;
+      // end
 
       // if (Reset_L) begin
       //    if (resetFlag) begin
@@ -156,9 +158,9 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 // to change the variable names).
 //
     // Monitor changes in the program counter
-   always @(PC) begin
+   always @(PCWire) begin
     $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d  ",
-   PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
+   PCWire,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
      //$display($time, "WIRES: busA=%d busB=%d B=%d ALUSrcB=%d imm16=%d imm32=%d ", busA, busB, B, ALUSrcB, imm16, imm32);
      // $display($time," Control Unit: ALUSrcB=%d  RegDst=%d  RegWrite=%d  ", ALUSrcB, RegDst, RegWrite);
      // $display($time, " ALU Control Unit: opcode=%d  funct=%d  ALUOp=%d  ", instruction[31:26], instruction[5:0], ALUOp);
