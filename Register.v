@@ -6,7 +6,7 @@ module Register (CLK, MasterReset_L, readReg1, readReg2, writeReg, writeData, Re
    reg [31:0] register[31:0];
    reg[31:0] resetFlag, resetCount;
    reg prevReset_L;
-   integer i;
+   reg[7:0] i;
 
    initial begin
       register[0] = 32'b0;
@@ -15,23 +15,29 @@ module Register (CLK, MasterReset_L, readReg1, readReg2, writeReg, writeData, Re
       if (MasterReset_L) begin
          if (RegWrite) begin
             register[writeReg] = writeData;
-            $display($time," Register: readData1=reg[%d]=%d readData2=reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
-            //$display($time,"\tregister = %d\n", register[writeReg]);
+            $display($time," Register: reg[%d]=%d reg[%d]=%d register[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2], writeReg, writeData);
          end
       end else begin
+         $display("\t=========================Register Before Reset======================");
          for (i=0; i < 32; i = i + 1) begin
-            $display($time, "Register[%d] = %d", i, register[i]);
-         end      
+            $display($time, " Register[%d] = %d", i, register[i]);
+         end 
+         $display("\t=========================End of Register======================");
+         // reset
+         for (i=0; i < 32; i = i + 1) begin
+            register[i] = 0;
+         end 
+         $display("\n\n\t=========================Register After Reset======================"); 
+         for (i=0; i < 32; i = i + 1) begin
+            $display($time, " Register[%d] = %d", i, register[i]);
+         end  
+         $display("\t=========================End of Register======================\n\n");
       end
    end
 
-   //register[writeReg] = register[writeReg]
    assign readData1 = register[readReg1];
    assign readData2 = register[readReg2];
 
-   // always @(readData1 or readData2) begin
-   //    $display($time," readData1=reg[%d]=%d readData2=reg[%d]=%d", readReg1, register[readReg1], readReg2,register[readReg2]);
-   // end
 endmodule // Imem
 
 /*

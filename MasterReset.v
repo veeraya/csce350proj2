@@ -9,7 +9,7 @@ module MasterReset(CLK, Reset_L, Reset_L_Out);
 	end
 
 	always @(negedge CLK) begin
-	    $display($time, "REG: Reset_L=%d resetCount=%d Reset_L_Out=%d", Reset_L, resetCount, Reset_L_Out);
+	    $display($time, " Master reset: Reset_L=%d resetCount=%d Reset_L_Out=%d", Reset_L, resetCount, Reset_L_Out);
 		if (Reset_L) begin
 			if (resetFlag) begin
 				Reset_L_Out = 0;

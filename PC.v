@@ -13,12 +13,10 @@ module ProgramCounter(CLK, MasterReset_L, startPC, PC);
 		if (!initialized) begin
 			PC = startPC - 4;
 			initialized = 1;
-		end
-
-		if (MasterReset_L) begin
+		end else if (MasterReset_L) begin
 			PC = PC + 4;
 		end else begin
-			PC = startPC;
+			PC = startPC - 4;
 		end
 	end
 endmodule

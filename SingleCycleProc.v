@@ -83,31 +83,20 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    input    Reset_L, CLK;
    input [31:0] startPC;
    output [31:0] dmemOut;
-   reg [31:0] PC, Instr;
-   wire [31:0] PCWire, instruction, ALUOut, busA, busB, B, imm32;
+   wire [31:0] PC, instruction, ALUOut, busA, busB, B, imm32;
    wire ALUSrcB, RegDst, RegWrite, ALUOverflow, zero, carryOut, masterReset;
    wire [3:0] ALUOp;
    wire [4:0] Rw, Ra, Rb;
    wire [15:0] imm16;
-   reg[31:0] resetFlag, resetCount;
-   reg prevReset_L, initialized;
 
-   initial begin
-      //PC = startPC;
-      resetFlag = 1;
-      resetCount = 0;
-      initialized = 0;
-   end
-
-   //assign PCWire = PC;
    assign Ra = instruction[25:21]; //Rs
    assign Rb = instruction[20:16]; //Rt
    assign dmemOut = ALUOut;
    assign imm16 = instruction[15:0];
 
    MasterReset rst(CLK, Reset_L,masterReset);
-   ProgramCounter pcMod(CLK, masterReset, startPC, PCWire);
-   InstrMem instrMemBlk(PCWire, instruction);
+   ProgramCounter pcMod(CLK, masterReset, startPC, PC);
+   InstrMem instrMemBlk(PC, instruction);
    MainControl controlUnit(instruction[31:26], ALUSrcB, RegDst, RegWrite);
    ALUControl aluControlUnit(instruction[31:26], instruction[5:0], ALUOp);
    MUX5_2to1 regDstMux(instruction[15:11], instruction[20:16], RegDst, Rw);
@@ -116,51 +105,14 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    MUX32_2to1 BSelect(busB, imm32, ALUSrcB, B);
    ALU_behav alu(busA, B, ALUOp, ALUOut, ALUOverflow, 1'b0, carryOut, zero);
 
-   always @(negedge CLK) begin
-      // get PC value
-      //if (Instr != 0) begin
-      // $display($time, "PC=%d masterResetReg=%d", PCWire, masterReset);
-      
-      // if (!initialized) begin
-      //    PC = startPC - 4;
-      //    initialized = 1;
-      // end 
-
-      // if (!masterReset) begin
-      //    PC = startPC;
-      // end else begin
-      //    PC = PC + 4;
-      // end
-
-      // if (Reset_L) begin
-      //    if (resetFlag) begin
-      //       PC = startPC;
-      //       resetCount = 0;
-      //       resetFlag = 0;
-      //    end else begin
-      //       PC = PC + 4;
-      //    end
-      // end else begin// Reset_L low
-      //    PC = PC + 4;
-      //    resetCount = resetCount + 1;
-      //    if (resetCount >= 32'b1010) begin
-      //       resetFlag = 1;
-      //    end
-      // end
-
-      Instr = instruction;
-   end
-
-   // checked: InstrMem, MainContorl, ALUControl, Register
-
 //
 // Debugging threads that you may find helpful (you may have
 // to change the variable names).
 //
     // Monitor changes in the program counter
-   always @(PCWire) begin
-    $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d  ",
-   PCWire,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
+   always @(PC) begin
+    $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d\n",
+   PC, instruction[31:26], instruction[25:21], instruction[20:16], instruction[15:11], instruction[15:0], instruction[5:0]);
      //$display($time, "WIRES: busA=%d busB=%d B=%d ALUSrcB=%d imm16=%d imm32=%d ", busA, busB, B, ALUSrcB, imm16, imm32);
      // $display($time," Control Unit: ALUSrcB=%d  RegDst=%d  RegWrite=%d  ", ALUSrcB, RegDst, RegWrite);
      // $display($time, " ALU Control Unit: opcode=%d  funct=%d  ALUOp=%d  ", instruction[31:26], instruction[5:0], ALUOp);
@@ -208,11 +160,11 @@ module testCPU(Reset_L, startPC, testData);
       Reset_L = 0;  startPC = 0 * 4;
       #101 // insures reset is asserted across negative clock edge
      Reset_L = 1;
-      #1500; // allow enough time for program 1 to run to completion
+      #1200; // allow enough time for program 1 to run to completion
       Reset_L = 0;
-      #1010 $display ("Program 1: Result: %d", testData);
+      #1010 // reset
       Reset_L = 1;
-      #1500;
+      #1200;
       // Your program 2
       //startPC = 14 * 4;
       //#101 Reset_L = 1;
