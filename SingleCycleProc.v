@@ -47,6 +47,7 @@
 `include "control.v"
 `include "mux.v"
 `include "signextend.v"
+`include "MasterReset.v"
 /*-------------------------- CPU -------------------------------
  * This module implements a single-cycle
  * CPU similar to that described in the text book
@@ -83,17 +84,18 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    output [31:0] dmemOut;
    reg [31:0] PC, Instr;
    wire [31:0] PCIn, instruction, ALUOut, busA, busB, B, imm32;
-   wire ALUSrcB, RegDst, RegWrite, ALUOverflow, zero, carryOut;
+   wire ALUSrcB, RegDst, RegWrite, ALUOverflow, zero, carryOut, masterReset;
    wire [3:0] ALUOp;
    wire [4:0] Rw, Ra, Rb;
    wire [15:0] imm16;
    reg[31:0] resetFlag, resetCount;
-   reg prevReset_L;
+   reg prevReset_L, initialized;
 
    initial begin
       PC = startPC;
       resetFlag = 1;
       resetCount = 0;
+      initialized = 0;
    end
 
    assign PCIn = PC;
@@ -102,11 +104,12 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    assign dmemOut = ALUOut;
    assign imm16 = instruction[15:0];
 
+   MasterReset rst(CLK, Reset_L,masterReset);
    InstrMem instrMemBlk(PCIn, instruction);
    MainControl controlUnit(instruction[31:26], ALUSrcB, RegDst, RegWrite);
    ALUControl aluControlUnit(instruction[31:26], instruction[5:0], ALUOp);
    MUX5_2to1 regDstMux(instruction[15:11], instruction[20:16], RegDst, Rw);
-   Register register(CLK, Reset_L, Ra, Rb, Rw, ALUOut, RegWrite, busA, busB);
+   Register register(CLK, masterReset, Ra, Rb, Rw, ALUOut, RegWrite, busA, busB);
    SIGN_EXTEND extender(imm16, imm32);
    MUX32_2to1 BSelect(busB, imm32, ALUSrcB, B);
    ALU_behav alu(busA, B, ALUOp, ALUOut, ALUOverflow, 1'b0, carryOut, zero);
@@ -114,22 +117,34 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    always @(negedge CLK) begin
       // get PC value
       //if (Instr != 0) begin
-      $display($time, "Reset_L=%d resetCount=%d PC=%d", Reset_L, resetCount, PCIn);
-      if (Reset_L) begin
-         if (resetFlag) begin
-            PC = startPC;
-            resetCount = 0;
-            resetFlag = 0;
-         end else begin
-            PC = PC + 4;
-         end
-      end else begin// Reset_L low
+      $display($time, "PC=%d masterResetReg=%d", PCIn, masterReset);
+      
+      if (!initialized) begin
+         PC = startPC - 4;
+         initialized = 1;
+      end 
+
+      if (!masterReset) begin
+         PC = startPC;
+      end else begin
          PC = PC + 4;
-         resetCount = resetCount + 1;
-         if (resetCount >= 32'b1010) begin
-            resetFlag = 1;
-         end
       end
+
+      // if (Reset_L) begin
+      //    if (resetFlag) begin
+      //       PC = startPC;
+      //       resetCount = 0;
+      //       resetFlag = 0;
+      //    end else begin
+      //       PC = PC + 4;
+      //    end
+      // end else begin// Reset_L low
+      //    PC = PC + 4;
+      //    resetCount = resetCount + 1;
+      //    if (resetCount >= 32'b1010) begin
+      //       resetFlag = 1;
+      //    end
+      // end
 
       Instr = instruction;
    end

@@ -4,7 +4,12 @@ module MasterReset(CLK, Reset_L, Reset_L_Out);
 	reg Reset_L_Out;
 	reg[31:0] resetFlag, resetCount;
 
+	initial begin
+		resetCount = 0;
+	end
+
 	always @(negedge CLK) begin
+	    $display($time, "REG: Reset_L=%d resetCount=%d Reset_L_Out=%d", Reset_L, resetCount, Reset_L_Out);
 		if (Reset_L) begin
 			if (resetFlag) begin
 				Reset_L_Out = 0;
@@ -12,6 +17,7 @@ module MasterReset(CLK, Reset_L, Reset_L_Out);
             	resetFlag = 0;
 			end else begin
 				Reset_L_Out = 1;
+				resetCount = 0;
 			end
 		end else begin
 			Reset_L_Out = 1;
