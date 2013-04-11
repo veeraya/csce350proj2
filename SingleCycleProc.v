@@ -68,7 +68,7 @@
 //         value into the program counter (see startPC below).
 //
 // startPC - during a reset, becomes the new contents of the program counter
-//	     (starting address of test program).
+//      (starting address of test program).
 //
 // Output Port
 // -----------
@@ -78,7 +78,7 @@
 //-------------------------------------------------------------------------
 
 module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
-   input 	Reset_L, CLK;
+   input    Reset_L, CLK;
    input [31:0] startPC;
    output [31:0] dmemOut;
    reg [31:0] PC, Instr;
@@ -87,9 +87,13 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
    wire [3:0] ALUOp;
    wire [4:0] Rw, Ra, Rb;
    wire [15:0] imm16;
+   reg[31:0] resetFlag, resetCount;
+   reg prevReset_L;
 
    initial begin
       PC = startPC;
+      resetFlag = 1;
+      resetCount = 0;
    end
 
    assign PCIn = PC;
@@ -109,14 +113,25 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 
    always @(negedge CLK) begin
       // get PC value
-      if (Instr != 0) begin
-         if (Reset_L) begin
-            PC = PC + 4;
-         end else begin
+      //if (Instr != 0) begin
+      $display($time, "Reset_L=%d resetCount=%d PC=%d", Reset_L, resetCount, PCIn);
+      if (Reset_L) begin
+         if (resetFlag) begin
             PC = startPC;
+            resetCount = 0;
+            resetFlag = 0;
+         end else begin
+            PC = PC + 4;
          end
-         Instr = instruction;
+      end else begin// Reset_L low
+         PC = PC + 4;
+         resetCount = resetCount + 1;
+         if (resetCount >= 32'b1010) begin
+            resetFlag = 1;
+         end
       end
+
+      Instr = instruction;
    end
 
    // checked: InstrMem, MainContorl, ALUControl, Register
@@ -127,8 +142,8 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 //
     // Monitor changes in the program counter
    always @(PC) begin
-     //#10 $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d  ",
-	//PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
+    $display($time," PC=%d  Instr: op=%d  rs=%d  rt=%d  rd=%d  imm16=%d  funct=%d  ",
+   PC,Instr[31:26],Instr[25:21],Instr[20:16],Instr[15:11],Instr[15:0],Instr[5:0]);
      //$display($time, "WIRES: busA=%d busB=%d B=%d ALUSrcB=%d imm16=%d imm32=%d ", busA, busB, B, ALUSrcB, imm16, imm32);
      // $display($time," Control Unit: ALUSrcB=%d  RegDst=%d  RegWrite=%d  ", ALUSrcB, RegDst, RegWrite);
      // $display($time, " ALU Control Unit: opcode=%d  funct=%d  ALUOp=%d  ", instruction[31:26], instruction[5:0], ALUOp);
@@ -137,10 +152,10 @@ module SingleCycleProc(CLK, Reset_L, startPC, dmemOut);
 
    /*   Monitors memory writes
    always @(MemWrite)
-	begin
-	#1 $display($time," MemWrite=%b clock=%d addr=%d data=%d",
-	            MemWrite, clock, dmemaddr, rportb);
-	end
+   begin
+   #1 $display($time," MemWrite=%b clock=%d addr=%d data=%d",
+               MemWrite, clock, dmemaddr, rportb);
+   end
    */
 
 endmodule // CPU
@@ -150,7 +165,7 @@ module m555 (CLK);
    parameter StartTime = 0, Ton = 50, Toff = 50, Tcc = Ton+Toff; //
 
    output CLK;
-   reg 	  CLK;
+   reg     CLK;
 
    initial begin
       #StartTime CLK = 0;
@@ -166,20 +181,21 @@ endmodule
 
 module testCPU(Reset_L, startPC, testData);
    input [31:0] testData;
-   output 	Reset_L;
+   output   Reset_L;
    output [31:0] startPC;
-   reg 		 Reset_L;
-   reg [31:0] 	 startPC;
+   reg       Reset_L;
+   reg [31:0]   startPC;
 
    initial begin
       // Your program 1
       Reset_L = 0;  startPC = 0 * 4;
       #101 // insures reset is asserted across negative clock edge
-	  Reset_L = 1;
-      #10000; // allow enough time for program 1 to run to completion
+     Reset_L = 1;
+      #1500; // allow enough time for program 1 to run to completion
       Reset_L = 0;
-      #10 $display ("Program 1: Result: %d", testData);
-
+      #1000 $display ("Program 1: Result: %d", testData);
+      Reset_L = 1;
+      #1500;
       // Your program 2
       //startPC = 14 * 4;
       //#101 Reset_L = 1;
