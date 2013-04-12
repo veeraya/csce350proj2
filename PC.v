@@ -11,12 +11,12 @@ module ProgramCounter(CLK, MasterReset_L, startPC, PC);
 
 	always @(negedge CLK) begin
 		if (!initialized) begin
-			PC = startPC - 4;
+			#2 PC = startPC - 4;
 			initialized = 1;
 		end else if (MasterReset_L) begin
-			PC = PC + 4;
+			#2 PC = PC + 4;
 		end else begin
-			PC = startPC - 4;
+			#2 PC = startPC - 4;
 		end
 	end
 endmodule
